@@ -4,7 +4,7 @@ import api from '../../services/api';
 
 import logoImg from '../../assets/logo.svg';
 
-import { Title, Form, Repositories } from './styles';
+import { Title, Form, Repositories, Error } from './styles';
 
 // Eu preciso colocar na minha tipagem só as informações q eu vou utilizar na minha interface
 interface Repository {
@@ -19,6 +19,7 @@ interface Repository {
 // function Dashboard() {} é mais verboso pra falar o tipo
 const Dashboard: React.FC = () => {
   const [newRepo, setNewRepo] = useState('');
+  const [inputError, setinputError] = useState('');
   const [repositories, setRepositories] = useState<Repository[]>([]);
 
   async function handleAddRepository(
@@ -26,13 +27,23 @@ const Dashboard: React.FC = () => {
   ): Promise<void> {
     event.preventDefault();
 
-    const response = await api.get<Repository>(`repos/${newRepo}`);
+    // se repositorio estiver vazio
+    if (!newRepo) {
+      setinputError('Digite o auto/nome do repositório');
+      return;
+    }
 
-    const repository = response.data;
+    try {
+      const response = await api.get<Repository>(`repos/${newRepo}`);
 
-    setRepositories([...repositories, repository]);
+      const repository = response.data;
 
-    setNewRepo(''); // limpando barra de pesquisa
+      setRepositories([...repositories, repository]);
+      setNewRepo(''); // limpando barra de pesquisa
+      setinputError('');
+    } catch (err) {
+      setinputError('Erro na busca por esse repositório');
+    }
     // console.log(response.data);
     // console.log(newRepo);
     // Adição de um novo repositório
@@ -40,12 +51,17 @@ const Dashboard: React.FC = () => {
     // Salvar novo repositório no estado
   }
 
+  // propriedades JS: truthy (valores q não são vazios: 'fewqfw', 3,...), falsy (algo vazio)
+
   return (
     <>
       <img src={logoImg} alt="Github Explorer" />
       <Title>Explore repositórios no Github</Title>
 
-      <Form onSubmit={handleAddRepository}>
+      <Form
+        hasError={!!inputError /* Boolean(inputError) */}
+        onSubmit={handleAddRepository}
+      >
         <input
           value={newRepo}
           onChange={e => setNewRepo(e.target.value)}
@@ -53,6 +69,8 @@ const Dashboard: React.FC = () => {
         />
         <button type="submit">Pesquisar</button>
       </Form>
+
+      {inputError && <Error>{inputError}</Error>}
 
       <Repositories>
         {repositories.map(repository => (
